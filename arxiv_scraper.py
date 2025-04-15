@@ -113,7 +113,7 @@ print("Type of papers:", type(papers))
 print("Length of papers:", len(papers))
 print("First paper:", papers[0] if papers else "No entries")
 
-df = pd.DataFrame(papers, columns=["id", "title", "authors", "link", "year"])
+df = pd.DataFrame(papers, columns=["year", "title", "authors", "link"])
 df.to_csv("arxiv_papers.csv", index=False)
 df.to_markdown("README.md", index=False)
 
