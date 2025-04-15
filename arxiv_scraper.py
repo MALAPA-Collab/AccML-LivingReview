@@ -97,7 +97,7 @@ def parse_arxiv(
         # print(link, year, arxiv_id)
         # print(type(year))
         # print("")
-        papers.append([arxiv_id, title, authors, link, year])
+        papers.append([year, title, authors, link])
     return papers
 
 
