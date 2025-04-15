@@ -1,9 +1,15 @@
-from datetime import datetime
-from urllib.parse import quote
+from pathlib import Path
 
 import feedparser
 import pandas as pd
-import requests
+
+THIS_DIR = Path(__file__).resolve().parent
+ROOT = THIS_DIR.parent
+OUTPUTS_DIR = ROOT / "outputs"
+OUTPUTS_DIR.mkdir(exist_ok=True)
+
+csv_file = OUTPUTS_DIR / "arxiv_papers.csv"
+readme_file = ROOT / "README.md"
 
 # --------------- CONFIG ------------------
 
@@ -34,10 +40,11 @@ KEYWORDS = [
     "particle swarm optimization",
     "simulated annealing",
     "gradient descent",
-]  # in title or abstract, case-insensitive
+]
 START_DATE = None
 END_DATE = None
 MAX_RESULTS = 3000  # total papers to fetch from arXiv (max: 30000)
+# --------------------------------------------
 
 
 def parse_arxiv(
@@ -76,7 +83,6 @@ def parse_arxiv(
         if not title:
             print("Skipping entry without title:", entry)
             continue
-
         abstract = entry.get("summary", "").strip().replace("\n", " ")
         if not abstract:
             print("Skipping entry without abstract:", entry)
@@ -90,7 +96,7 @@ def parse_arxiv(
         updated = entry.updated[:10]
         published = entry.get("published", updated)[:10]
         year = published[:4]
-        arxiv_id = entry.id.split("/abs/")[-1]
+        # arxiv_id = entry.id.split("/abs/")[-1]
         # print("")
         # print(title)
         # print(authors)
@@ -101,6 +107,7 @@ def parse_arxiv(
     return papers
 
 
+# Get a list of lists containing the year, title, authors, and link of each paper
 papers = parse_arxiv(
     CATEGORY,
     KEYWORDS,
@@ -109,23 +116,39 @@ papers = parse_arxiv(
     MAX_RESULTS,
 )
 
-print("Type of papers:", type(papers))
-print("Length of papers:", len(papers))
-print("First paper:", papers[0] if papers else "No entries")
+print("Number of arxiv papers found:", len(papers))
 
+# Convert to list to dataframe
 df = pd.DataFrame(papers, columns=["year", "title", "authors", "link"])
-df.to_csv("arxiv_papers.csv", index=False)
-df.to_markdown("README.md", index=False)
 
+# Save the dataframe to a CSV file
+df.to_csv(csv_file, index=False)
 
-# Read the existing content
-with open("README.md", "r", encoding="utf-8") as f:
+# Save the dataframe to the README.md file
+with open(readme_file, "w", encoding="utf-8") as f:
+    # Header
+    f.write("## Arxiv papers\n\n")
+    f.write(f"Number of papers in Arxiv: {len(df)}\n\n")
+    f.write(
+        "[<img src='assets/figures/arxiv_per_year.png' width='400'>](assets/figures/arxiv_per_year.png)\n\n"
+    )
+
+    # Loop through each paper
+    for _, row in df.iterrows():
+        title = row["title"]
+        link = row["link"]
+        authors = row["authors"]
+        year = row["year"]
+
+        f.write(f"- [{title}]({link}) ({year}) \n")
+
+# Add the header to the README.md file
+with open(readme_file, "r", encoding="utf-8") as f:
     content = f.read()
 
-# Define your header or intro text
 header = "# AccML-LivingReview\n\n"
 header += "In the same spirit as the [HEP Living Review](https://github.com/iml-wg/HEPML-LivingReview/), the accelerator physics community needs to accurately track the ML contributions to the field.\n\n"
 
 # Write it all back: header + original content
-with open("README.md", "w", encoding="utf-8") as f:
+with open(readme_file, "w", encoding="utf-8") as f:
     f.write(header + content)
